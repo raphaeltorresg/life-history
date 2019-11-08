@@ -3,9 +3,9 @@ import { Grid, Form } from 'semantic-ui-react';
 
 
 const HistoryDetails = props => {
-    const { name, dateBorn, dateEnd, lifeHistory, qrcode } = props.history
+    const { name, dateBorn, dateEnd, image, age, lifeHistory, qrcode } = props.history
     return(
-        <Grid centered style={{padding:10}}>
+        <Grid centered style={{padding:10, backgroundColor:'#7289a7'}}>
             <Form>
                 {!(props.noQrCode) &&
                 <Form.Field>
@@ -18,7 +18,15 @@ const HistoryDetails = props => {
                     <p>{name}</p>
                 </Form.Field>
                 <Form.Field>
-                    <label>Date Born</label>
+                    <label>Person Image</label>
+                    <img src={image} alt="Person" style={{width: 250, heigth: 250 }} />
+                </Form.Field>
+                <Form.Field>
+                    <label>Age</label>
+                    <p>{age} Years</p>
+                </Form.Field>
+                <Form.Field>
+                    <label>Date Birth</label>
                     <p>{dateBorn}</p>
                 </Form.Field>
                 <Form.Field>

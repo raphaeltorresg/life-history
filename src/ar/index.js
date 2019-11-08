@@ -1,4 +1,5 @@
 import Arweave from 'arweave/web';
+import moment from 'moment'
 
 const arweaveNode = Arweave.init({
     host: 'arweave.net',
@@ -20,6 +21,19 @@ const readWallet = (wallet) => {
     })
 }
 
+    const readImage = (image) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => {
+            reader.abort()
+            reject()
+          }
+          reader.onload = () => resolve(reader.result)
+          reader.readAsDataURL(image)
+        })
+    }
+
+
 const getArweaveUser = async(walletFile) =>{
     return new Promise(async (resolve, reject) => {
         try{
@@ -36,12 +50,14 @@ const getArweaveUser = async(walletFile) =>{
     })
 }
 
-const generateNewHistoryTransaction = async(name, dateBorn, dateEnd, lifeHistory, userWallet) => {
+const generateNewHistoryTransaction = async(name, image, xdateBorn, xdateEnd, age, lifeHistory, userWallet) => {
     return new Promise(async (resolve, reject) => {
         try{
-            const data = JSON.stringify({ name, dateBorn, dateEnd, lifeHistory })
+            const dateBorn =  moment(xdateBorn).format('YYYY/MM/DD')
+            const dateEnd =  moment(xdateEnd).format('YYYY/MM/DD')
+            const data = JSON.stringify({ name, image, dateBorn, dateEnd, age, lifeHistory })
             let transaction = await arweaveNode.createTransaction({data}, userWallet)
-            await transaction.addTag('App-Name', 'people-memory-dev123');
+            await transaction.addTag('App-Name', 'lifehist-data');
             await arweaveNode.transactions.sign(transaction, userWallet)
             resolve(transaction)
         }catch(err){
@@ -73,7 +89,7 @@ const getUserHistory = async(arweaveAddress) => {
         expr2: {
             op: 'equals',
             expr1: 'App-Name',
-            expr2: 'people-memory-dev123'
+            expr2: 'lifehist-data'
         }     
       }
       let result = []
@@ -113,6 +129,6 @@ export{
     generateNewHistoryTransaction,
     sendArweaveTransaction,
     getUserHistory,
-    getHistory
-
+    getHistory,
+    readImage
 }

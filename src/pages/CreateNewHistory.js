@@ -2,16 +2,20 @@ import React, { useState }  from 'react'
 import { Grid, Form, TextArea, Button, Modal, Input, Message, Segment, Dimmer, Loader, Checkbox, Table } from 'semantic-ui-react';
 import DatePicker from "react-datepicker"; 
 import "react-datepicker/dist/react-datepicker.css";
-import { getArweaveUser, generateNewHistoryTransaction, arweaveNode, sendArweaveTransaction } from '../ar';
+import { getArweaveUser, generateNewHistoryTransaction, arweaveNode, sendArweaveTransaction, readImage } from '../ar';
 import QRCode from 'qrcode'
 import ModalViewHistory from '../components/ModalViewHistory';
 import ModalLoading from '../components/ModalLoading';
+import moment from 'moment'
+import { Link } from 'react-router-dom'
 
 
 const CreateNewHistory = props => {
         const [dateBorn, setDateBorn] = useState(new Date());
         const [dateEnd, setDateEnd] = useState(new Date());
         const [name, setName] = useState('')
+        const [image, setImage] = useState(false)
+        const [age, setAge] = useState(false)
         const [lifeHistory, setLifeHistory] = useState('')
         const [arweaveAccount, setArAccount] = useState({ wallet: false, address:'', winstonBalance: 0, arweaveBalance: 0, history: [] })
         const [loadAccModal, setAccModal] = useState(true)
@@ -23,13 +27,23 @@ const CreateNewHistory = props => {
         const [modalHistory, setModalHistory] = useState(false) //List of History
         const [detailsHistory, setDetailsHistory] = useState(false) //Details of History
 
+        const loadImage = async(imageFile) => {
+            try{
+                setLoading(true)
+                const image = await readImage(imageFile)
+                setImage(image)
+                setLoading(false)
+            }catch(err){
+                setLoading(false)
+            }
+        }
+
         const loadAccount = async(walletFile) => {
             try{
                 setLoading(true)
                 setAccModal(false)
                 const { wallet, address, winstonBalance, arweaveBalance, history } = await getArweaveUser(walletFile)
                 setArAccount({ wallet, address, winstonBalance, arweaveBalance, history })
-                console.log(history)
                 setLoading(false)
             }catch(err){
                 setAccModal(true)
@@ -39,10 +53,15 @@ const CreateNewHistory = props => {
         }
 
         const prepareTransaction = async() => {
+            if(!name || !image || !dateBorn || !dateEnd || !lifeHistory){
+                alert('Check the form, you miss something')
+                return
+            }
             try{
                 setLoading(true)
-                const transaction = await generateNewHistoryTransaction(name, dateBorn, dateEnd, lifeHistory, arweaveAccount.wallet)
-                console.log(transaction)
+                const age = moment(dateEnd).diff(moment(dateBorn), 'years')
+                setAge(age)
+                const transaction = await generateNewHistoryTransaction(name, image, dateBorn, dateEnd, age, lifeHistory, arweaveAccount.wallet)
                 setTransaction(transaction)
                 setConfirmHstModal(true)
                 setLoading(false)
@@ -102,6 +121,9 @@ const CreateNewHistory = props => {
                         <p>After mining your data will be available on the network.</p>
                         <p>Transaction Id:</p>
                         <p>{confirmTransaction}</p>
+                        <Link to="/">
+                            <Button>Home</Button>
+                        </Link>
                     </Message>
                 </Grid>
             )
@@ -117,7 +139,7 @@ const CreateNewHistory = props => {
                     closeModal={() => setConfirmHstModal(false)}
                     transaction={transaction} userBalance={arweaveAccount.winstonBalance}
                     sendNewHistory={sendNewHistory} checkboxConfirm={checkboxConfirm}
-                    setConfirmCheckBox={setConfirmCheckBox}
+                    setConfirmCheckBox={setConfirmCheckBox} age={age} image={image}
                 />
                 <ModalListHistory 
                     open={modalHistory}
@@ -144,15 +166,31 @@ const CreateNewHistory = props => {
                         <label>Name</label>
                         <input value={name} onChange={(e) => setName(e.target.value)} placeholder='Name' />
                     </Form.Field>
+                    <Form.Field>
+                        <label>Image</label>
+                        {image ? 
+                            <React.Fragment>
+                                <div>
+                                    <img src={image} alt="Person" style={{width: 250, heigth: 250}} />
+                                </div>
+                                <div>
+                                    <Button circular negative onClick={() => setImage(false)}>X</Button>
+                                </div>
+                            </React.Fragment>
+                            :
+                            <Input type="file" accept="image/*" onChange={(e) => loadImage(e.target.files[0])} />
+                        }
+                    </Form.Field>
                 <Grid columns={2} divided>
                 <Grid.Row>
                 <Grid.Column>
                 <Form.Field>
-                <label>Date Born</label>
+                <label>Date Birth</label>
                  <DatePicker
                     selected={dateBorn}
                     onChange={date => setDateBorn(date)}
                     showYearDropdown
+                    dateFormat="yyyy/MM/dd"
                     dateFormatCalendar="MMMM"
                     yearDropdownItemNumber={40}
                     scrollableYearDropdown
@@ -167,6 +205,7 @@ const CreateNewHistory = props => {
                     selected={dateEnd}
                     onChange={date => setDateEnd(date)}
                     showYearDropdown
+                    dateFormat="yyyy/MM/dd"
                     dateFormatCalendar="MMMM"
                     yearDropdownItemNumber={40}
                     scrollableYearDropdown
@@ -191,7 +230,7 @@ const CreateNewHistory = props => {
 
 const ModalLoadAccount = props => (
     <Modal open={props.open}>
-      <Modal.Header>Load Arweave Account</Modal.Header>
+      <Modal.Header style={{backgroundColor: '#dfdfea'}}>Load Arweave Account</Modal.Header>
       <Modal.Content>
         <Modal.Description>
           <p>
@@ -205,7 +244,7 @@ const ModalLoadAccount = props => (
 
 const ModalConfirmTransaction = props => (
     <Modal open={props.open}>
-      <Modal.Header>Confirm New History</Modal.Header>
+      <Modal.Header style={{backgroundColor: '#dfdfea'}}>Confirm New History</Modal.Header>
       <Modal.Content>
         <Grid centered>
             <Form style={{margin:30}}>
@@ -213,11 +252,19 @@ const ModalConfirmTransaction = props => (
                 <label>Name</label>
                 <input value={props.name} />
             </Form.Field>
+            <Form.Field>
+                <label>Person Image</label>
+                <img src={props.image} alt="Person" style={{width: 250, heigth: 250}} />
+            </Form.Field>
+            <Form.Field>
+                <label>Age</label>
+                <input value={props.age} />
+            </Form.Field>
             <Grid columns={2} divided>
             <Grid.Row>
             <Grid.Column>
             <Form.Field>
-            <label>Date Born</label>
+            <label>Date Birth</label>
             <input value={props.dateBorn.toISOString().substring(0, 10)} />
             </Form.Field>
             </Grid.Column>
@@ -264,22 +311,15 @@ const ModalConfirmTransaction = props => (
 const ModalListHistory = props => {
     return(
         <Modal open={props.open} onClose={() => props.setModalHistory(false)}>
-            <Modal.Header>History List</Modal.Header>
+            <Modal.Header style={{backgroundColor: '#dfdfea'}}>History List</Modal.Header>
                 <Modal.Content>
                     <Grid centered>
                     <Table celled padded>
-                        <Table.Header>
-                        <Table.Row>
-                            <Table.HeaderCell>Person Name</Table.HeaderCell>
-                            <Table.HeaderCell>Details</Table.HeaderCell>
-                        </Table.Row>
-                        </Table.Header>
-
                         <Table.Body>
                         {props.history.map((x, index) => (
                             <Table.Row>
                                 <Table.Cell>{x.name}</Table.Cell>
-                                <Table.Cell onClick={()=>props.viewDetails(x)}>Details</Table.Cell>
+                                <Table.Cell onClick={()=>props.viewDetails(x)}>View Details</Table.Cell>
                             </Table.Row>
                         ))}
                         </Table.Body>

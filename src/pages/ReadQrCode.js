@@ -38,12 +38,12 @@ const ReadQrCode = props => {
         )
     }
     return(
-        <Grid centered>
+        <Grid centered style={{ margin: 20, padding: 20}}>
             <QrReader
             delay={300}
             onError={handleError}
             onScan={(data) => handleScan(data)}
-            style={{ heigth:  '250px', width: '250px' }}
+            style={{ heigth:  '250px', width: '250px', margin: 20 }}
             />
             <ModalLoading open={loading} />
         </Grid>
